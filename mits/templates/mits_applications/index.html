@@ -7,6 +7,67 @@ This is your application-in-progress for the MAGFest Indie Tabletop Showcase for
 <a href="team">{{ team.name }}</a>.  If you are not a member of {{ team.name }} then please
 <a href="logout">log out</a>.
 
+{% if team.steps_completed < c.MITS_APPLICATION_STEPS %}
+    <h3 style="color:red">You have completed {{ team.completion_percentage }}% of your application!</h3>
+    You <b>must</b> complete the remaining steps below by {{ c.MITS_SUBMISSION_DEADLINE|datetime_local }} to be considered for the showcase.
+{% else %}
+    <h3 style="color:green">You have completed your application!</h3>
+    You can continue to edit your information below.
+{% endif %}
+
+
+<h3>Manage Your Team</h3>
+
+<p>
+    We offer up to {{ c.MITS_BADGES_PER_TEAM }} badges to each team; each team member must commit to spending at least
+    {{ c.MITS_HOUR_REQUIREMENT }} presenting at the table space we provide.
+</p>
+<p>
+    Additional team members must purchase their badges.  Transfer of badges between team members is prohibited.
+</p>
+<table>
+{% for applicant in team.applicants %}
+    <tr>
+        <td><ul><li></li></ul></td>
+        <td>{{ applicant.full_name }}</td>
+        <td>[<a href="applicant?id={{ applicant.id }}">Edit</a>]</td>
+        <td>
+            {% if applicant.primary_contact %}
+                <i>Receives Emails</i>
+            {% endif %}
+        </td>
+        <td>
+            <form method="post" action="set_primary_contact">
+                {{ csrf_token() }}
+                <input type="hidden" name="id" value="{{ applicant.id }}" />
+                {% if applicant.primary_contact %}
+                    <input type="submit" value="Stop Sending Emails To This Person" />
+                {% else %}
+                    <input type="hidden" name="enable" value="true" />
+                    <input type="submit" value="Include This Person on MITS Emails" />
+                {% endif %}
+            </form>
+        </td>
+        <td>
+            {% if not applicant.attendee_id %}
+                <form method="post" action="delete_applicant">
+                    {{ csrf_token() }}
+                    <input type="hidden" name="id" value="{{ applicant.id }}" />
+                    <input type="submit" value="Delete" />
+                </form>
+            {% endif %}
+        </td>
+    </tr>
+{% endfor %}
+</table>
+{% if team.applicants|length < c.MITS_BADGES_PER_TEAM %}
+    <a href="applicant?id=None">Add a Team Member</a>
+{% endif %}
+
+
+<h3>Manage Your Games</h3>
+
+
 
 
 {% endblock %}

@@ -11,6 +11,9 @@ MITSApplicant.required = [
     ('email', 'Email Address'),
     ('cellphone', 'Cellphone Number')
 ]
+MITSScreenshot.required = [
+    ('description', 'Description')
+]
 
 
 @validation.MITSTeam
