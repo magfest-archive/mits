@@ -67,7 +67,54 @@ This is your application-in-progress for the MAGFest Indie Tabletop Showcase for
 
 <h3>Manage Your Games</h3>
 
+<table>
+{% for game in team.games %}
+    <tr>
+        <td><ul><li></li></ul></td>
+        <td>{{ game.name }}</td>
+        <td>[<a href="game?id={{ game.id }}">Edit</a>]</td>
+        <td>
+            <form method="post" action="delete_game">
+                {{ csrf_token() }}
+                <input type="hidden" name="id" value="{{ game.id }}" />
+                <input type="submit" value="Delete" />
+            </form>
+        </td>
+    </tr>
+{% endfor %}
+</table>
+
+<a href="game?id=None">Add a Game</a>
 
 
+{% if team.steps_completed >= 2 %}
+    <h3>Manage Your Pictures</h3>
+    We require applicants to upload pictures of their games to help us assess their current state of development.
+
+    <table>
+    {% for picture in team.pictures %}
+        <tr>
+            <td><ul><li></li></ul></td>
+            <td><a target="_blank" href="{{ picture.url }}" title="{{ picture.description }}">{{ picture.filename }}</a></td>
+            <td>
+                <form method="post" action="delete_picture">
+                    {{ csrf_token() }}
+                    <input type="hidden" name="id" value="{{ picture.id }}" />
+                    <input type="submit" value="Delete" />
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <a href="picture?id=None">Add a Picture</a>
+{% endif %}
+
+
+{% if team.steps_completed >= 3 %}
+    <h3>Request Timeslots</h3>
+
+
+{% endif %}
 
 {% endblock %}

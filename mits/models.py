@@ -13,14 +13,14 @@ class SessionMixin:
         return self.query(MITSTeam).options(joinedload(MITSTeam.applicants),
                                             joinedload(MITSTeam.games),
                                             joinedload(MITSTeam.presenting),
-                                            joinedload(MITSTeam.screenshots))
+                                            joinedload(MITSTeam.pictures))
 
-    def delete_mits_screenshot(self, screenshot):
-        self.delete(screenshot)
+    def delete_mits_picture(self, picture):
+        self.delete(picture)
         try:
-            os.remove(screenshot.filepath)
+            os.remove(picture.filepath)
         except:
-            pass
+            log.error('unexpected error deleting MITS image {}', picture.filepath)
         self.commit()
 
 
@@ -34,7 +34,7 @@ class MITSTeam(MagModel):
     applicants = relationship('MITSApplicant', backref='team')
     games = relationship('MITSGame', backref='team')
     presenting = relationship('MITSTimes', backref='team')
-    screenshots = relationship('MITSScreenshot', backref='team')
+    pictures = relationship('MITSPicture', backref='team')
 
     @property
     def email(self):
@@ -57,7 +57,7 @@ class MITSTeam(MagModel):
     def steps_completed(self):
         if not self.games:
             return 1
-        elif not self.screenshots:
+        elif not self.pictures:
             return 2
         elif not self.presenting:
             return 3
@@ -99,17 +99,12 @@ class MITSGame(MagModel):
     min_age = Column(Integer)
     min_players = Column(Integer, default=2)
     max_players = Column(Integer, default=4)
-    personally_own = Column(Boolean, default=True)
+    personally_own = Column(Boolean, default=False)
+    unlicensed = Column(Boolean, default=False)
     professional = Column(Boolean, default=False)
 
 
-class MITSTimes(MagModel):
-    team_id = Column(ForeignKey('mits_team.id'))
-    availability = Column(MultiChoice(c.MITS_SCHEDULE_OPTS))
-    multiple_tables = Column(MultiChoice(c.MITS_SCHEDULE_OPTS))
-
-
-class MITSScreenshot(MagModel):
+class MITSPicture(MagModel):
     team_id      = Column(UUID, ForeignKey('mits_team.id'))
     filename     = Column(UnicodeText)
     content_type = Column(UnicodeText)
@@ -118,11 +113,17 @@ class MITSScreenshot(MagModel):
 
     @property
     def url(self):
-        return '../mits_applications/view_screenshot?id={}'.format(self.id)
+        return '../mits_applications/view_picture?id={}'.format(self.id)
 
     @property
     def filepath(self):
-        return os.path.join(c.MITS_SCREENSHOT_DIR, str(self.id))
+        return os.path.join(c.MITS_PICTURE_DIR, str(self.id))
+
+
+class MITSTimes(MagModel):
+    team_id = Column(ForeignKey('mits_team.id'))
+    availability = Column(MultiChoice(c.MITS_SCHEDULE_OPTS))
+    multiple_tables = Column(MultiChoice(c.MITS_SCHEDULE_OPTS))
 
 
 @on_startup
@@ -156,5 +157,5 @@ def add_applicant_restriction():
             return instance
         setattr(Session.SessionMixin, method_name, with_applicant)
 
-    for name in ['mits_applicant', 'mits_game', 'mits_times', 'mits_screenshot']:
+    for name in ['mits_applicant', 'mits_game', 'mits_times', 'mits_picture']:
         override_getter(name)

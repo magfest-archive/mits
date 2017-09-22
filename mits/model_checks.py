@@ -11,7 +11,13 @@ MITSApplicant.required = [
     ('email', 'Email Address'),
     ('cellphone', 'Cellphone Number')
 ]
-MITSScreenshot.required = [
+MITSGame.required = [
+    ('name', 'Name'),
+    ('promo_blurb', 'Promo Blurb'),
+    ('description', 'Description'),
+    ('genre', 'Game Genre')
+]
+MITSPicture.required = [
     ('description', 'Description')
 ]
 
@@ -34,3 +40,9 @@ def email_valid(applicant):
 def valid_phone_number(applicant):
     if _invalid_phone_number(applicant.cellphone):
         return 'Your cellphone number was not a valid 10-digit US phone number.  Please include a country code (e.g. +44) for international numbers.'
+
+
+@validation.MITSGame
+def consistent_players(game):
+    if game.min_players > game.max_players:
+        return 'Min players must be less than or equal to max players'

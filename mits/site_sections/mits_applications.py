@@ -17,9 +17,9 @@ class Root:
         cherrypy.session['mits_team_id'] = id
         raise HTTPRedirect('index')
 
-    def view_screenshot(self, session, id):
-        screenshot = session.mits_screenshot(id)
-        return serve_file(screenshot.filepath, name=screenshot.filename, content_type=screenshot.content_type)
+    def view_picture(self, session, id):
+        picture = session.mits_picture(id)
+        return serve_file(picture.filepath, name=picture.filename, content_type=picture.content_type)
 
     def team(self, session, message='', **params):
         params.pop('id', None)
@@ -80,27 +80,44 @@ class Root:
             session.delete(applicant)
             raise HTTPRedirect('index?message={}', 'Team member deleted')
 
-    def screenshot(self, session, message='', image=None, **params):
-        screenshot = session.mits_screenshot(params, applicant=True)
+    def picture(self, session, message='', image=None, **params):
+        picture = session.mits_picture(params, applicant=True)
         if cherrypy.request.method == 'POST':
-            screenshot.filename = image.filename
-            screenshot.content_type = image.content_type.value
-            screenshot.extension = image.filename.split('.')[-1].lower()
-            message = check(screenshot)
+            picture.filename = image.filename
+            picture.content_type = image.content_type.value
+            picture.extension = image.filename.split('.')[-1].lower()
+            message = check(picture)
             if not message:
-                with open(screenshot.filepath, 'wb') as f:
+                with open(picture.filepath, 'wb') as f:
                     shutil.copyfileobj(image.file, f)
-                raise HTTPRedirect('index?message={}', 'Screenshot Uploaded')
+                raise HTTPRedirect('index?message={}', 'Picture Uploaded')
 
         return {
             'message': message,
-            'screenshot': screenshot
+            'picture': picture
         }
 
     @csrf_protected
-    def delete_screenshot(self, session, id):
-        screenshot = session.mits_screenshot(id, applicant=True)
-        session.delete_mits_screenshot(screenshot)
-        raise HTTPRedirect('index?message={}', 'Screenshot deleted')
+    def delete_picture(self, session, id):
+        picture = session.mits_picture(id, applicant=True)
+        session.delete_mits_picture(picture)
+        raise HTTPRedirect('index?message={}', 'Picture deleted')
 
-    
+    def game(self, session, message='', **params):
+        game = session.mits_game(params, applicant=True)
+        if cherrypy.request.method == 'POST':
+            message = check(game)
+            if not message:
+                session.add(game)
+                raise HTTPRedirect('index?message={}', 'Game saved')
+
+        return {
+            'game': game,
+            'message': message
+        }
+
+    @csrf_protected
+    def delete_game(self, session, id):
+        game = session.mits_game(id, applicant=True)
+        session.delete(game)
+        raise HTTPRedirect('index?message={}', 'Game deleted')
