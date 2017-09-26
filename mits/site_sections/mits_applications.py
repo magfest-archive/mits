@@ -26,7 +26,7 @@ class Root:
         team = session.mits_team(dict(params, id=cherrypy.session.get('mits_team_id', 'None')), restricted=True)
         applicant = session.mits_applicant(params, restricted=True)
 
-        if cherrypy.request.method == 'POST' and team.can_save:
+        if cherrypy.request.method == 'POST':
             message = check(team)
             if not message and team.is_new:
                 message = check(applicant)
@@ -121,3 +121,46 @@ class Root:
         game = session.mits_game(id, applicant=True)
         session.delete(game)
         raise HTTPRedirect('index?message={}', 'Game deleted')
+
+    def schedule(self, session, message='', **params):
+        times = session.mits_times(params, applicant=True)
+        if cherrypy.request.method == 'POST':
+            message = check(times)
+            if not message:
+                session.add(times)
+                raise HTTPRedirect('index?message={}', 'Times saved')
+
+        return {
+            'times': times,
+            'message': message,
+            'grid': [
+                (val, desc, val in times.availability_ints, val in times.multiple_tables_ints)
+                for val, desc in c.MITS_SCHEDULE_OPTS
+            ]
+        }
+
+    def hotel_requests(self, session, message='', **params):
+        team = session.logged_in_mits_team()
+        if cherrypy.request.method == 'POST':
+            for applicant in team.applicants:
+                applicant.declined_hotel_space = '{}-declined'.format(applicant.id) in params
+                applicant.requested_room_nights = ','.join(listify(params.get('{}-night'.format(applicant.id), [])))
+                if not applicant.declined_hotel_space and not applicant.requested_room_nights:
+                    message = '{} must either declined hotel space or indicate which room nights they need'.format(applicant.full_name)
+                    break
+
+            if not message:
+                raise HTTPRedirect('index?message={}', 'Room nights uploaded')
+
+        return {
+            'team': team,
+            'message': message
+        }
+
+    def submit_for_judging(self, session):
+        team = session.logged_in_mits_team()
+        if team.steps_completed < c.MITS_APPLICATION_STEPS - 1:
+            raise HTTPRedirect('index?message={}', 'You have not completed all of the required steps')
+        else:
+            team.submitted = True
+            raise HTTPRedirect('index?message={}', 'Your application has been submitted')

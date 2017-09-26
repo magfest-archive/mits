@@ -3,7 +3,7 @@
 
 <h2>MAGFest Indie Tabletop Showcase Application</h2>
 
-This is your application-in-progress for the MAGFest Indie Tabletop Showcase for your production team
+This is your application for the MAGFest Indie Tabletop Showcase for your production team
 <a href="team">{{ team.name }}</a>.  If you are not a member of {{ team.name }} then please
 <a href="logout">log out</a>.
 
@@ -12,18 +12,18 @@ This is your application-in-progress for the MAGFest Indie Tabletop Showcase for
     You <b>must</b> complete the remaining steps below by {{ c.MITS_SUBMISSION_DEADLINE|datetime_local }} to be considered for the showcase.
 {% else %}
     <h3 style="color:green">You have completed your application!</h3>
-    You can continue to edit your information below.
+    You can continue to edit your information below anytime until {{ c.MITS_EDITING_DEADLINE|datetime_local }}.
 {% endif %}
 
 
 <h3>Manage Your Team</h3>
 
 <p>
-    We offer up to {{ c.MITS_BADGES_PER_TEAM }} badges to each team; each team member must commit to spending at least
-    {{ c.MITS_HOUR_REQUIREMENT }} presenting at the table space we provide.
+    We offer up to {{ c.MITS_BADGES_PER_TEAM }} complementary badges to each accepted team; each team member must
+    commit to spending <b>at least {{ c.MITS_HOUR_REQUIREMENT }} running games</b> at the table space we provide.
 </p>
 <p>
-    Additional team members must purchase their badges.  Transfer of badges between team members is prohibited.
+    Additional team members must purchase their badges.  Transfer of badges between team members during the event is prohibited.
 </p>
 <table>
 {% for applicant in team.applicants %}
@@ -114,7 +114,33 @@ This is your application-in-progress for the MAGFest Indie Tabletop Showcase for
 {% if team.steps_completed >= 3 %}
     <h3>Request Timeslots</h3>
 
+    <p>Tell us specifically when during the event you're available to present.</p>
 
+    <p><a href="schedule?id={{ team.schedule.id if team.schedule else 'None' }}">Manage Requested Schedule Times</a></p>
+{% endif %}
+
+{% if team.steps_completed >= 4 %}
+    <h3>Manage Hotel Room Requests</h3>
+
+    <p>We have a limited number of rooms set aside for people who need hotel space and haven't secured it for themselves.</p>
+
+    <p>Please let us know whether or not you would like to request room space.</p>
+
+    <p><a href="hotel_requests">Enter your hotel request information</a></p>
+{% endif %}
+
+{% if team.steps_completed == 5 %}
+    <h3>Submit Your Application</h3>
+    <p>
+        Now that you've filled out all of your information above, the only remaining step is to formally submit this
+        application.  After you do so, our judges will begin evaluating it, so please do not do so until you're ready
+        for us to begin judging.
+    </p>
+    <p>
+        <form method="post" action="submit_for_judging">
+            <input type="submit" value="Submit For Judging" />
+        </form>
+    </p>
 {% endif %}
 
 {% endblock %}

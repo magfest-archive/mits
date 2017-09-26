@@ -33,8 +33,8 @@ class MITSTeam(MagModel):
 
     applicants = relationship('MITSApplicant', backref='team')
     games = relationship('MITSGame', backref='team')
-    presenting = relationship('MITSTimes', backref='team')
     pictures = relationship('MITSPicture', backref='team')
+    schedule = relationship('MITSTimes', uselist=False, backref='team')
 
     @property
     def email(self):
@@ -45,9 +45,8 @@ class MITSTeam(MagModel):
         return [a for a in self.applicants if a.primary_contact]
 
     @property
-    def can_save(self):  # TODO: figure out why this doesn't work
-        return True
-        return self.is_new and self.BEFORE_MITS_SUBMISSION_DEADLINE or self.BEFORE_MITS_EDITING_DEADLINE
+    def can_save(self):
+        return self.is_new and c.BEFORE_MITS_SUBMISSION_DEADLINE or c.BEFORE_MITS_EDITING_DEADLINE
 
     @property
     def completed_hotel_form(self):
@@ -59,12 +58,14 @@ class MITSTeam(MagModel):
             return 1
         elif not self.pictures:
             return 2
-        elif not self.presenting:
+        elif not self.schedule:
             return 3
         elif not self.completed_hotel_form:
             return 4
         elif not self.submitted:
             return 5
+        else:
+            return 6
 
     @property
     def completion_percentage(self):
@@ -87,6 +88,9 @@ class MITSApplicant(MagModel):
     @property
     def full_name(self):
         return self.first_name + ' ' + self.last_name
+
+    def has_requested(self, night):
+        return night in self.requested_room_nights_ints
 
 
 class MITSGame(MagModel):
