@@ -29,11 +29,11 @@ class Root:
         if cherrypy.request.method == 'POST':
             message = check(team)
             if not message and team.is_new:
+                applicant.team = team
                 message = check(applicant)
             if not message:
                 session.add(team)
                 if team.is_new:
-                    applicant.team = team
                     applicant.primary_contact = True
                     session.add(applicant)
                 raise HTTPRedirect('continue_app?id={}', team.id)
@@ -148,6 +148,9 @@ class Root:
                 if not applicant.declined_hotel_space and not applicant.requested_room_nights:
                     message = '{} must either declined hotel space or indicate which room nights they need'.format(applicant.full_name)
                     break
+                elif applicant.declined_hotel_space and applicant.requested_room_nights:
+                    message = '{} cannot both decline hotel space and request specific room nights'.format(applicant.full_name)
+                    break
 
             if not message:
                 raise HTTPRedirect('index?message={}', 'Room nights uploaded')
@@ -161,6 +164,8 @@ class Root:
         team = session.logged_in_mits_team()
         if team.steps_completed < c.MITS_APPLICATION_STEPS - 1:
             raise HTTPRedirect('index?message={}', 'You have not completed all of the required steps')
+        elif c.AFTER_MITS_SUBMISSION_DEADLINE:
+            raise HTTPRedirect('index?message={}', 'You cannot submit an application past the deadline')
         else:
-            team.submitted = True
+            team.submitted = datetime.now(UTC)
             raise HTTPRedirect('index?message={}', 'Your application has been submitted')

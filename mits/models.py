@@ -10,10 +10,12 @@ class SessionMixin:
             raise HTTPRedirect('../mits_applications/team')
 
     def mits_teams(self):
-        return self.query(MITSTeam).options(joinedload(MITSTeam.applicants),
-                                            joinedload(MITSTeam.games),
-                                            joinedload(MITSTeam.presenting),
-                                            joinedload(MITSTeam.pictures))
+        return (self.query(MITSTeam)
+                    .options(joinedload(MITSTeam.applicants),
+                             joinedload(MITSTeam.games),
+                             joinedload(MITSTeam.schedule),
+                             joinedload(MITSTeam.pictures))
+                    .order_by(MITSTeam.name))
 
     def delete_mits_picture(self, picture):
         self.delete(picture)
@@ -29,12 +31,21 @@ class MITSTeam(MagModel):
     panel_interest = Column(Boolean, default=False)
     want_to_sell = Column(Boolean, default=False)
     address = Column(UnicodeText)
-    submitted = Column(Boolean, default=False)
+    submitted = Column(UTCDateTime, nullable=True)
+
+    applied = Column(UTCDateTime, server_default=utcnow())
+    status = Column(Choice(c.MITS_APP_STATUS), default=c.PENDING, admin_only=True)
 
     applicants = relationship('MITSApplicant', backref='team')
     games = relationship('MITSGame', backref='team')
     pictures = relationship('MITSPicture', backref='team')
     schedule = relationship('MITSTimes', uselist=False, backref='team')
+
+    email_model_name = 'team'
+
+    @property
+    def accepted(self):
+        return self.status == c.ACCEPTED
 
     @property
     def email(self):
@@ -45,8 +56,12 @@ class MITSTeam(MagModel):
         return [a for a in self.applicants if a.primary_contact]
 
     @property
+    def salutation(self):
+        return ' and '.join(applicant.first_name for applicant in self.primary_contacts)
+
+    @property
     def can_save(self):
-        return self.is_new and c.BEFORE_MITS_SUBMISSION_DEADLINE or c.BEFORE_MITS_EDITING_DEADLINE
+        return c.HAS_MITS_ADMIN_ACCESS or (self.is_new and c.BEFORE_MITS_SUBMISSION_DEADLINE or c.BEFORE_MITS_EDITING_DEADLINE)
 
     @property
     def completed_hotel_form(self):
@@ -142,10 +157,9 @@ def add_applicant_restriction():
     1) We check that there is currently a logged in team, and redirect to the
        initial application form if there is not.
     2) We check that the item being edited belongs to the currently-logged-in
-       studio and raise an exception if it does not.  This check is bypassed for
+       team and raise an exception if it does not.  This check is bypassed for
        new things which have not yet been saved to the database.
-    3) If the model is one with a "team" relationship, we set that to the
-       currently-logged-in team.
+    3) We set the "team" relationship on the model to the logged-in team.
     """
     def override_getter(method_name):
         orig_getter = getattr(Session.SessionMixin, method_name)

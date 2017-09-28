@@ -23,6 +23,20 @@ MITSPicture.required = [
 
 
 @validation.MITSTeam
+@validation.MITSApplicant
+@validation.MITSGame
+@validation.MITSPicture
+@validation.MITSTimes
+def is_saveable(inst):
+    team = inst if isinstance(inst, MITSTeam) else inst.team
+    if not team.can_save:
+        if team.is_new:
+            return 'New applications may not be submitted past the deadline'
+        else:
+            return 'We are now past the deadline and your application may no longer be edited'
+
+
+@validation.MITSTeam
 def address_required_for_sellers(team):
     if team.want_to_sell and not team.address.strip():
         return 'You must provide a business address if you wish to sell your merchandise'

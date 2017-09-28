@@ -26,7 +26,7 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
     Additional team members must purchase their badges.  Transfer of badges between team members during the event is prohibited.
 </p>
 <table>
-{% for applicant in team.applicants %}
+{% for applicant in team.applicants|sort(attribute='full_name') %}
     <tr>
         <td><ul><li></li></ul></td>
         <td>{{ applicant.full_name }}</td>
@@ -68,7 +68,7 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
 <h3>Manage Your Games</h3>
 
 <table>
-{% for game in team.games %}
+{% for game in team.games|sort(attribute='name') %}
     <tr>
         <td><ul><li></li></ul></td>
         <td>{{ game.name }}</td>
@@ -92,7 +92,7 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
     We require applicants to upload pictures of their games to help us assess their current state of development.
 
     <table>
-    {% for picture in team.pictures %}
+    {% for picture in team.pictures|sort(attribute='filename') %}
         <tr>
             <td><ul><li></li></ul></td>
             <td><a target="_blank" href="{{ picture.url }}" title="{{ picture.description }}">{{ picture.filename }}</a></td>
