@@ -17,6 +17,9 @@ class Root:
         cherrypy.session['mits_team_id'] = id
         raise HTTPRedirect('index')
 
+    def login_explanation(self, message=''):
+        return {'message': message}
+
     def view_picture(self, session, id):
         picture = session.mits_picture(id)
         return serve_file(picture.filepath, name=picture.filename, content_type=picture.content_type)

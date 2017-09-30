@@ -7,7 +7,7 @@ class SessionMixin:
         try:
             return self.mits_team(cherrypy.session['mits_team_id'])
         except:
-            raise HTTPRedirect('../mits_applications/team')
+            raise HTTPRedirect('../mits_applications/login_explanation')
 
     def mits_teams(self):
         return (self.query(MITSTeam)
@@ -18,11 +18,16 @@ class SessionMixin:
                     .order_by(MITSTeam.name))
 
     def delete_mits_picture(self, picture):
-        self.delete(picture)
         try:
             os.remove(picture.filepath)
         except:
             log.error('unexpected error deleting MITS image {}', picture.filepath)
+
+        # Regardless of whether removing the file from the filesystem succeeded,
+        # we still want the delete it from the database.  The most likely cause
+        # of failure is if the file was already deleted or is otherwise not
+        # present, so it wouldn't make sense to keep the database record around.
+        self.delete(picture)
         self.commit()
 
 
@@ -65,6 +70,13 @@ class MITSTeam(MagModel):
 
     @property
     def completed_hotel_form(self):
+        """
+        This is "any" rather than "all" because teams are allowed to add and
+        remove members even after their application has been submitted.  Rather
+        than suddenly downgrade their completion percentage, it makes more sense
+        to send such teams an automated email indicating that they need to
+        provide their remaining hotel info.
+        """
         return any(a.declined_hotel_space or a.requested_room_nights for a in self.applicants)
 
     @property
