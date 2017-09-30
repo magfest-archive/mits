@@ -15,13 +15,18 @@ room with others in the Indie Tabletop Showcase.
         <div class="form-group">
             <label class="col-sm-3 control-label">{{ applicant.full_name }}</label>
             <div class="checkbox col-sm-6">
-                <input type="checkbox" name="{{ applicant.id }}-declined" value="1" {% if applicant.declined_hotel_space %}checked{% endif %} />
-                {{ applicant.first_name }} doesn't need hotel space
+                <label class='checkbox-label'>
+                    <input type="checkbox" name="{{ applicant.id }}-declined" value="1" {% if applicant.declined_hotel_space %}checked{% endif %} />
+                    {{ applicant.first_name }} doesn't need hotel space
+                </label>
                 <br/><b>or</b><br/>
                 If {{ applicant.first_name }} does need hotel space, please indicate which nights: <br/>
                 {% for val, desc in c.MITS_ROOM_NIGHT_OPTS %}
-                    <input type="checkbox" name="{{ applicant.id }}-night" value="{{ val }}" {% if applicant.has_requested(val) %}checked{% endif %} />
-                    {{ desc }} <br/>
+                    <label class='checkbox-label'>
+                        <input type="checkbox" name="{{ applicant.id }}-night" value="{{ val }}" {% if applicant.has_requested(val) %}checked{% endif %} />
+                        {{ desc }}
+                    </label>
+                    <br/>
                 {% endfor %}
             </div>
         </div>

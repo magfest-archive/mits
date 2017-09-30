@@ -24,12 +24,16 @@
         <tr>
             <td>{{ desc }}</td>
             <td>
-                <input type="checkbox" name="availability" value="{{ val }}" {% if avail_checked %}checked{% endif %} />
-                Can present
+                <label class='checkbox-label'>
+                    <input type="checkbox" name="availability" value="{{ val }}" {% if avail_checked %}checked{% endif %} />
+                    Can present
+                </label>
             </td>
             <td>
-                <input type="checkbox" name="multiple_tables" value="{{ val }}" {% if multi_checked %}checked{% endif %} />
-                Can use multiple tables
+                <label class='checkbox-label'>
+                    <input type="checkbox" name="multiple_tables" value="{{ val }}" {% if multi_checked %}checked{% endif %} />
+                    Can use multiple tables
+                </label>
             </td>
         </tr>
     {% endfor %}
