@@ -14,7 +14,7 @@ AutomatedEmail.queries[MITSTeam] = lambda session: session.mits_teams()
 # currently completion percentage when that info will probably be out of date
 # by the time they read it.  By waiting an hour, we ensure this doesn't happen.
 MITSEmail('Thanks for showing an interest in MITS!', 'mits_registered.txt',
-          lambda team: not team.submitted and team.registered < datetime.now(UTC) - timedelta(hours=1),
+          lambda team: not team.submitted and team.applied < datetime.now(UTC) - timedelta(hours=1),
           ident='mits_application_created')
 
 # For similar reasons to the above, we wait at least 6 hours before sending this
@@ -23,7 +23,7 @@ MITSEmail('Thanks for showing an interest in MITS!', 'mits_registered.txt',
 # until they've had a chance to complete the application and even receive the
 # initial reminder email above before being pestered with this warning.
 MITSEmail('Last chance to complete your MITS application!', 'mits_reminder.txt',
-          lambda team: not team.submitted and team.registered < datetime.now(UTC) - timedelta(hours=6),
+          lambda team: not team.submitted and team.applied < datetime.now(UTC) - timedelta(hours=6),
           when=days_before(3, c.MITS_SUBMISSION_DEADLINE),
           ident='mits_reminder')
 

@@ -90,6 +90,8 @@ class Root:
             picture.content_type = image.content_type.value
             picture.extension = image.filename.split('.')[-1].lower()
             message = check(picture)
+            if not message and not image.file:
+                message = 'You must select a picture to upload'
             if not message:
                 with open(picture.filepath, 'wb') as f:
                     shutil.copyfileobj(image.file, f)
