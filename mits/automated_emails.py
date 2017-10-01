@@ -6,11 +6,13 @@ class MITSEmail(AutomatedEmail):
         kwargs.setdefault('sender', c.MITS_EMAIL)
         AutomatedEmail.__init__(self, MITSTeam, *args, **kwargs)
 
+AutomatedEmail.queries[MITSTeam] = lambda session: session.mits_teams()
+
 # We wait an hour before sending out this email because the most common case
 # of someone registering their team is that they'll immediately fill out the
 # entire application, so there's no reason to send them an email showing their
 # currently completion percentage when that info will probably be out of date
-# by the time they read it.  By waiting an hour, we 
+# by the time they read it.  By waiting an hour, we ensure this doesn't happen.
 MITSEmail('Thanks for showing an interest in MITS!', 'mits_registered.txt',
           lambda team: not team.submitted and team.registered < datetime.now(UTC) - timedelta(hours=1),
           ident='mits_application_created')
