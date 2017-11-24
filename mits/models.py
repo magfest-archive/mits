@@ -3,14 +3,38 @@ from mits import *
 
 @Session.model_mixin
 class SessionMixin:
+    def log_in_as_mits_team(self, team_id, redirect_to='../mits_applications/index'):
+        try:
+            team = self.mits_team(team_id)
+            duplicate_teams = []
+            while team.duplicate_of:
+                duplicate_teams.append(team.id)
+                team = self.mits_team(team.duplicate_of)
+                assert team.id not in duplicate_teams, 'circular reference in duplicate_of: {}'.format(duplicate_teams)
+        except:
+            log.error('attempt to log into invalid team {}', team_id, exc_info=True)
+            raise HTTPRedirect('../mits_applications/login_explanation')
+        else:
+            cherrypy.session['mits_team_id'] = team.id
+            raise HTTPRedirect(redirect_to)
+
     def logged_in_mits_team(self):
         try:
-            return self.mits_team(cherrypy.session['mits_team_id'])
+            team = self.mits_team(cherrypy.session['mits_team_id'])
+            assert not team.deleted or team.duplicate_of
         except:
             raise HTTPRedirect('../mits_applications/login_explanation')
+        else:
+            if team.duplicate_of:
+                # the currently-logged-in team was deleted, so log back in as the correct team
+                self.log_as_as_mits_team(team.id)
+            else:
+                return team
 
-    def mits_teams(self):
+    def mits_teams(self, include_deleted=False):
+        deleted_filter = [] if include_deleted else [MITSTeam.deleted == False]
         return (self.query(MITSTeam)
+                    .filter(*deleted_filter)
                     .options(joinedload(MITSTeam.applicants),
                              joinedload(MITSTeam.games),
                              joinedload(MITSTeam.schedule),
@@ -45,6 +69,18 @@ class MITSTeam(MagModel):
     games = relationship('MITSGame', backref='team')
     pictures = relationship('MITSPicture', backref='team')
     schedule = relationship('MITSTimes', uselist=False, backref='team')
+
+    duplicate_of = Column(UUID, nullable=True)
+    deleted = Column(Boolean, default=False)
+    """
+    We've found that a lot of people start filling out an application and then
+    instead of continuing their application just start over fresh and fill out
+    a new one.  In these cases we mark the application as soft-deleted and then
+    set the duplicate_of field so that when an applicant tries to log into the
+    original application, we can redirect them to the correct application.
+
+    Someone does this.
+    """
 
     email_model_name = 'team'
 

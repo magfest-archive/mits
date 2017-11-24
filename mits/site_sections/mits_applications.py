@@ -13,9 +13,8 @@ class Root:
         cherrypy.session.pop('mits_team_id', None)
         raise HTTPRedirect('team')
 
-    def continue_app(self, id):
-        cherrypy.session['mits_team_id'] = id
-        raise HTTPRedirect('index')
+    def continue_app(self, session, id):
+        session.log_in_as_mits_team(id, redirect_to='index')
 
     def login_explanation(self, message=''):
         return {'message': message}
