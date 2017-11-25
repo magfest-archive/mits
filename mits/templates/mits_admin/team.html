@@ -97,6 +97,15 @@
         <li><a target="_blank" href="{{ picture.url }}" title="{{ picture.description }}">{{ picture.filename }}</a></li>
     {% endfor %}
     </ul>
+
+    {% if team.documents %}
+        <h3>Documents</h3>
+        <ul>
+        {% for doc in team.documents|sort(attribute='filename') %}
+            <li><a href="{{ doc.url }}" title="{{ doc.description }}">{{ doc.filename }}</a></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
 </div>
 
 <div class="text-center">

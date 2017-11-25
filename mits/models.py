@@ -38,20 +38,21 @@ class SessionMixin:
                     .options(joinedload(MITSTeam.applicants),
                              joinedload(MITSTeam.games),
                              joinedload(MITSTeam.schedule),
-                             joinedload(MITSTeam.pictures))
+                             joinedload(MITSTeam.pictures),
+                             joinedload(MITSTeam.documents))
                     .order_by(MITSTeam.name))
 
-    def delete_mits_picture(self, picture):
+    def delete_mits_file(self, model):
         try:
-            os.remove(picture.filepath)
+            os.remove(model.filepath)
         except:
-            log.error('unexpected error deleting MITS image {}', picture.filepath)
+            log.error('unexpected error deleting MITS file {}', modle.filepath)
 
         # Regardless of whether removing the file from the filesystem succeeded,
         # we still want the delete it from the database.  The most likely cause
         # of failure is if the file was already deleted or is otherwise not
         # present, so it wouldn't make sense to keep the database record around.
-        self.delete(picture)
+        self.delete(model)
         self.commit()
 
 
@@ -68,6 +69,7 @@ class MITSTeam(MagModel):
     applicants = relationship('MITSApplicant', backref='team')
     games = relationship('MITSGame', backref='team')
     pictures = relationship('MITSPicture', backref='team')
+    documents = relationship('MITSDocument', backref='team')
     schedule = relationship('MITSTimes', uselist=False, backref='team')
 
     duplicate_of = Column(UUID, nullable=True)
@@ -187,6 +189,20 @@ class MITSPicture(MagModel):
         return os.path.join(c.MITS_PICTURE_DIR, str(self.id))
 
 
+class MITSDocument(MagModel):
+    team_id = Column(UUID, ForeignKey('mits_team.id'))
+    filename = Column(UnicodeText)
+    description  = Column(UnicodeText)
+
+    @property
+    def url(self):
+        return '../mits_applications/download_doc?id={}'.format(self.id)
+
+    @property
+    def filepath(self):
+        return os.path.join(c.MITS_PICTURE_DIR, str(self.id))
+
+
 class MITSTimes(MagModel):
     team_id = Column(ForeignKey('mits_team.id'))
     availability = Column(MultiChoice(c.MITS_SCHEDULE_OPTS))
@@ -223,5 +239,5 @@ def add_applicant_restriction():
             return instance
         setattr(Session.SessionMixin, method_name, with_applicant)
 
-    for name in ['mits_applicant', 'mits_game', 'mits_times', 'mits_picture']:
+    for name in ['mits_applicant', 'mits_game', 'mits_times', 'mits_picture', 'mits_document']:
         override_getter(name)

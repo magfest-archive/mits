@@ -27,6 +27,13 @@
     </div>
 {% endif %}
 
+{% if team.completion_percentage < 100 %}
+    <div class="warning">
+        <b>WARNING:</b> This application is only {{ team.completion_percentage }}% complete.  You may still edit
+        its acceptance status, but you should only do so if you're sure that this is correct.
+    </div>
+{% endif %}
+
 <form method="post" action="set_status">
     {{ csrf_token() }}
     <input type="hidden" name="confirmed" value="true" />

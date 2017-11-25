@@ -23,6 +23,11 @@ class Root:
         picture = session.mits_picture(id)
         return serve_file(picture.filepath, name=picture.filename, content_type=picture.content_type)
 
+    def download_doc(self, session, id):
+        doc = session.mits_document(id)
+        cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(doc.filename)
+        return serve_file(doc.filepath, name=doc.filename)
+
     def team(self, session, message='', **params):
         params.pop('id', None)
         team = session.mits_team(dict(params, id=cherrypy.session.get('mits_team_id', 'None')), restricted=True)
@@ -85,13 +90,13 @@ class Root:
     def picture(self, session, message='', image=None, **params):
         picture = session.mits_picture(params, applicant=True)
         if cherrypy.request.method == 'POST':
-            picture.filename = image.filename
-            picture.content_type = image.content_type.value
-            picture.extension = image.filename.split('.')[-1].lower()
             message = check(picture)
-            if not message and not image.file:
+            if not message and (not image or not image.filename):
                 message = 'You must select a picture to upload'
             if not message:
+                picture.filename = image.filename
+                picture.content_type = image.content_type.value
+                picture.extension = image.filename.split('.')[-1].lower()
                 with open(picture.filepath, 'wb') as f:
                     shutil.copyfileobj(image.file, f)
                 raise HTTPRedirect('index?message={}', 'Picture Uploaded')
@@ -104,8 +109,31 @@ class Root:
     @csrf_protected
     def delete_picture(self, session, id):
         picture = session.mits_picture(id, applicant=True)
-        session.delete_mits_picture(picture)
+        session.delete_mits_file(picture)
         raise HTTPRedirect('index?message={}', 'Picture deleted')
+
+    def document(self, session, message='', upload=None, **params):
+        doc = session.mits_document(params, applicant=True)
+        if cherrypy.request.method == 'POST':
+            message = check(doc)
+            if not message and not upload:
+                message = 'You must select a document to upload'
+            if not message:
+                doc.filename = upload.filename
+                with open(doc.filepath, 'wb') as f:
+                    shutil.copyfileobj(upload.file, f)
+                raise HTTPRedirect('index?message={}', 'Document Uploaded')
+
+        return {
+            'doc': doc,
+            'message': message
+        }
+
+    @csrf_protected
+    def delete_document(self, session, id):
+        doc = session.mits_document(id, applicant=True)
+        session.delete_mits_file(doc)
+        raise HTTPRedirect('index?message={}', 'Document deleted')
 
     def game(self, session, message='', **params):
         game = session.mits_game(params, applicant=True)

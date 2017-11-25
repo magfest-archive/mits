@@ -31,6 +31,7 @@ If applicable, select the duplicate team from the following list:
             <th></th>
             <th>Name</th>
             <th>Status</th>
+            <th>Completion</th>
             <th>Applicants</th>
             <th>Games</th>
             <th></th>
@@ -38,7 +39,7 @@ If applicable, select the duplicate team from the following list:
         <tbody>
             <tr>
                 <td><input type="radio" name="duplicate_of" value="" {% if not match_count %}checked{% endif %} /></td>
-                <td colspan="4"><i>Delete this application without marking it as a duplicate of anything.</i></td>
+                <td colspan="5"><i>Delete this application without marking it as a duplicate of anything.</i></td>
                 <td><button>Delete</button></td>
             </tr>
             {% for t in other_teams %}
@@ -49,6 +50,7 @@ If applicable, select the duplicate team from the following list:
                     </td>
                     <td><a href="../mits_applications/continue_app?id={{ t.id }}">{{ t.name }}</a></td>
                     <td>[{{ t.status_label }}]</td>
+                    <td>{{ t.completion_percentage }}%</td>
                     <td>
                         <ul>
                         {% for applicant in t.applicants %}
@@ -60,6 +62,8 @@ If applicable, select the duplicate team from the following list:
                         <ul>
                         {% for game in t.games %}
                             <li>{{ game.name }}</li>
+                        {% else %}
+                            <i>No games listed</i>
                         {% endfor %}
                         </ul>
                     </td>

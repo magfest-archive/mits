@@ -22,7 +22,7 @@ class Root:
     def set_status(self, session, id, status=None, confirmed=False, csrf_token=None, return_to='index', message=''):
         team = session.mits_team(id)
         matching = [t for t in session.mits_teams() if t.name == team.name and t.id != team.id]
-        if confirmed or (status and not matching and team.status == c.PENDING):
+        if confirmed or (status and not matching and team.status == c.PENDING and team.completion_percentage == 100):
             check_csrf(csrf_token)
             team.status = int(status)
             separator = '&' if '?' in return_to else '?'
