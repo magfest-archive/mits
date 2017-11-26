@@ -60,7 +60,7 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
     </tr>
 {% endfor %}
 </table>
-{% if team.applicants|length < c.MITS_BADGES_PER_TEAM %}
+{% if team.can_add_badges %}
     <a href="applicant?id=None">Add a Team Member</a>
 {% endif %}
 

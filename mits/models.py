@@ -35,7 +35,7 @@ class SessionMixin:
         deleted_filter = [] if include_deleted else [MITSTeam.deleted == False]
         return (self.query(MITSTeam)
                     .filter(*deleted_filter)
-                    .options(joinedload(MITSTeam.applicants),
+                    .options(joinedload(MITSTeam.applicants).subqueryload(MITSApplicant.attendee),
                              joinedload(MITSTeam.games),
                              joinedload(MITSTeam.schedule),
                              joinedload(MITSTeam.pictures),
@@ -54,6 +54,11 @@ class SessionMixin:
         # present, so it wouldn't make sense to keep the database record around.
         self.delete(model)
         self.commit()
+
+
+@Session.model_mixin
+class Attendee:
+    mits_applicants = relationship('MITSApplicant', backref='attendee')
 
 
 class MITSTeam(MagModel):
@@ -101,6 +106,16 @@ class MITSTeam(MagModel):
     @property
     def salutation(self):
         return ' and '.join(applicant.first_name for applicant in self.primary_contacts)
+
+    @property
+    def comped_badge_count(self):
+        return len([a for a in self.applicants if a.attendee_id and a.attendee.paid in [c.NEED_NOT_PAY, c.REFUNDED]])
+
+    @property
+    def can_add_badges(self):
+        uncomped_badge_count = len([a for a in self.applicants
+                                    if a.attendee_id and a.attendee.paid not in [c.NEED_NOT_PAY, c.REFUNDED]])
+        return len(self.applicants) - uncomped_badge_count < c.MITS_BADGES_PER_TEAM
 
     @property
     def can_save(self):

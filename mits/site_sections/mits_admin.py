@@ -51,3 +51,54 @@ class Root:
             'match_count': len([t for t in other if t.name == team.name]),
             'other_teams': sorted(other, key=lambda t: (t.name != team.name, t.name))
         }
+
+    def badges(self, session):
+        possibles = defaultdict(list)
+        for a in session.valid_attendees():
+            possibles[a.email.lower()].append(a)
+            possibles[a.first_name, a.last_name].append(a)
+
+        applicants = []
+        for team in session.mits_teams():
+            if team.status == c.ACCEPTED:
+                for a in team.applicants:
+                    if not a.attendee_id:
+                        applicants.append([a, set(possibles[a.email.lower()] + possibles[a.first_name, a.last_name])])
+
+        return {'applicants': applicants}
+
+    @ajax
+    def link_badge(self, session, applicant_id, attendee_id):
+        try:
+            applicant = session.mits_applicant(applicant_id)
+            applicant.attendee_id = attendee_id
+            session.commit()
+        except:
+            log.error('unexpected error linking applicant to a badge', exc_info=True)
+            return {'error': 'Unexpected error: unable to link applicant to badge.'}
+        else:
+            return {
+                'name': applicant.full_name,
+                'comp_count': applicant.team.comped_badge_count
+            }
+
+    @ajax
+    def create_badge(self, session, applicant_id):
+        try:
+            applicant = session.mits_applicant(applicant_id)
+            applicant.attendee = Attendee(
+                placeholder=True,
+                paid=c.NEED_NOT_PAY,
+                badge_type=c.ATTENDEE_BADGE,
+                first_name=applicant.first_name,
+                last_name=applicant.last_name,
+                email=applicant.email,
+                cellphone=applicant.cellphone
+            )
+            session.add(applicant.attendee)
+            session.commit()
+        except:
+            log.error('unexpected error adding new applicant', exc_info=True)
+            return {'error': 'Unexpected error: unable to add attendee'}
+        else:
+            return {'comp_count': applicant.team.comped_badge_count}

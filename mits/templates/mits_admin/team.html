@@ -38,7 +38,13 @@
     {% for a in team.applicants|sort(attribute='full_name') %}
         <tr>
             <td><ul><li></li></ul></td>
-            <td>{{ a.full_name }}</td>
+            <td>
+                {% if a.attendee_id %}
+                    {{ a.attendee|form_link }}
+                {% else %}
+                    {{ a.full_name }}
+                {% endif %}
+            </td>
             <td>{{ a.email }}</td>
             <td>{{ a.cellphone }}</td>
             <td>
