@@ -85,8 +85,6 @@ class MITSTeam(MagModel):
     a new one.  In these cases we mark the application as soft-deleted and then
     set the duplicate_of field so that when an applicant tries to log into the
     original application, we can redirect them to the correct application.
-
-    Someone does this.
     """
 
     email_model_name = 'team'
