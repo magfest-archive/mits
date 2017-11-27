@@ -3,7 +3,7 @@
 
 <h2>
     MITS Applications
-    <a href="../mits_applications/" class="btn btn-primary pull-right">Create Application</a>
+    <a href="create_new_application" class="btn btn-primary pull-right">Create Application</a>
 </h2>
 
 <table class="table datatable" data-page-length="-1">
@@ -23,7 +23,21 @@
         <td>{{ team.primary_contacts[0].full_name }}</td>
         <td>{{ team.applied_local|datetime("%Y-%m-%d") }}</td>
         <td>{{ team.completion_percentage }}%</td>
-        <td>{{ team.status_label }}</td>
+        <td>
+            {% if team.status == c.PENDING %}
+                <form method="post" action="set_status">
+                    {{ csrf_token() }}
+                    <input type="hidden" name="id" value="{{ team.id }}" />
+                    <select name="status">
+                        {{ options(c.MITS_APP_STATUS_OPTS, team.status) }}
+                    </select>
+                    <button>Save</button>
+                </form>
+            {% else %}
+                {{ team.status_label }}
+                [<a href="set_status?id={{ team.id }}">Change</a>]
+            {% endif %}
+        </td>
     </tr>
 {% endfor %}
 </tbody>

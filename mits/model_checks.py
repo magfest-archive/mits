@@ -20,6 +20,9 @@ MITSGame.required = [
 MITSPicture.required = [
     ('description', 'Description')
 ]
+MITSDocument.required = [
+    ('description', 'Description')
+]
 
 
 @validation.MITSTeam

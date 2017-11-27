@@ -60,7 +60,7 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
     </tr>
 {% endfor %}
 </table>
-{% if team.applicants|length < c.MITS_BADGES_PER_TEAM %}
+{% if team.can_add_badges %}
     <a href="applicant?id=None">Add a Team Member</a>
 {% endif %}
 
@@ -106,8 +106,29 @@ This is your application for the MAGFest Indie Tabletop Showcase for your produc
         </tr>
     {% endfor %}
     </table>
-
     <a href="picture?id=None">Add a Picture</a>
+
+    <br/> <br/>
+    While you are <b>required</b> to upload at least one picture of your game, you may also optionally upload
+    other documents such as rulebooks to assist our judges.  We can even include links to these documents on our
+    website to help promote your game if you specifically request that we do so.
+
+    <table>
+    {% for doc in team.documents|sort(attribute='filename') %}
+        <tr>
+            <td><ul><li></li></ul></td>
+            <td><a target="_blank" href="{{ doc.url }}" title="{{ doc.description }}">{{ doc.filename }}</a></td>
+            <td>
+                <form method="post" action="delete_document">
+                    {{ csrf_token() }}
+                    <input type="hidden" name="id" value="{{ doc.id }}" />
+                    <input type="submit" value="Delete" />
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </table>
+    <a href="document?id=None">Add a Document</a>
 {% endif %}
 
 

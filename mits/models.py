@@ -3,32 +3,62 @@ from mits import *
 
 @Session.model_mixin
 class SessionMixin:
+    def log_in_as_mits_team(self, team_id, redirect_to='../mits_applications/index'):
+        try:
+            team = self.mits_team(team_id)
+            duplicate_teams = []
+            while team.duplicate_of:
+                duplicate_teams.append(team.id)
+                team = self.mits_team(team.duplicate_of)
+                assert team.id not in duplicate_teams, 'circular reference in duplicate_of: {}'.format(duplicate_teams)
+        except:
+            log.error('attempt to log into invalid team {}', team_id, exc_info=True)
+            raise HTTPRedirect('../mits_applications/login_explanation')
+        else:
+            cherrypy.session['mits_team_id'] = team.id
+            raise HTTPRedirect(redirect_to)
+
     def logged_in_mits_team(self):
         try:
-            return self.mits_team(cherrypy.session['mits_team_id'])
+            team = self.mits_team(cherrypy.session['mits_team_id'])
+            assert not team.deleted or team.duplicate_of
         except:
             raise HTTPRedirect('../mits_applications/login_explanation')
+        else:
+            if team.duplicate_of:
+                # the currently-logged-in team was deleted, so log back in as the correct team
+                self.log_as_as_mits_team(team.id)
+            else:
+                return team
 
-    def mits_teams(self):
+    def mits_teams(self, include_deleted=False):
+        deleted_filter = [] if include_deleted else [MITSTeam.deleted == False]
         return (self.query(MITSTeam)
-                    .options(joinedload(MITSTeam.applicants),
+                    .filter(*deleted_filter)
+                    .options(joinedload(MITSTeam.applicants).subqueryload(MITSApplicant.attendee),
                              joinedload(MITSTeam.games),
                              joinedload(MITSTeam.schedule),
-                             joinedload(MITSTeam.pictures))
+                             joinedload(MITSTeam.pictures),
+                             joinedload(MITSTeam.documents))
                     .order_by(MITSTeam.name))
 
-    def delete_mits_picture(self, picture):
+    def delete_mits_file(self, model):
         try:
-            os.remove(picture.filepath)
+            os.remove(model.filepath)
         except:
-            log.error('unexpected error deleting MITS image {}', picture.filepath)
+            log.error('unexpected error deleting MITS file {}', modle.filepath)
 
         # Regardless of whether removing the file from the filesystem succeeded,
         # we still want the delete it from the database.  The most likely cause
         # of failure is if the file was already deleted or is otherwise not
         # present, so it wouldn't make sense to keep the database record around.
-        self.delete(picture)
+        self.delete(model)
         self.commit()
+
+
+@Session.model_mixin
+class Attendee:
+    mits_applicants = relationship('MITSApplicant', backref='attendee')
 
 
 class MITSTeam(MagModel):
@@ -44,7 +74,18 @@ class MITSTeam(MagModel):
     applicants = relationship('MITSApplicant', backref='team')
     games = relationship('MITSGame', backref='team')
     pictures = relationship('MITSPicture', backref='team')
+    documents = relationship('MITSDocument', backref='team')
     schedule = relationship('MITSTimes', uselist=False, backref='team')
+
+    duplicate_of = Column(UUID, nullable=True)
+    deleted = Column(Boolean, default=False)
+    """
+    We've found that a lot of people start filling out an application and then
+    instead of continuing their application just start over fresh and fill out
+    a new one.  In these cases we mark the application as soft-deleted and then
+    set the duplicate_of field so that when an applicant tries to log into the
+    original application, we can redirect them to the correct application.
+    """
 
     email_model_name = 'team'
 
@@ -63,6 +104,16 @@ class MITSTeam(MagModel):
     @property
     def salutation(self):
         return ' and '.join(applicant.first_name for applicant in self.primary_contacts)
+
+    @property
+    def comped_badge_count(self):
+        return len([a for a in self.applicants if a.attendee_id and a.attendee.paid in [c.NEED_NOT_PAY, c.REFUNDED]])
+
+    @property
+    def can_add_badges(self):
+        uncomped_badge_count = len([a for a in self.applicants
+                                    if a.attendee_id and a.attendee.paid not in [c.NEED_NOT_PAY, c.REFUNDED]])
+        return len(self.applicants) - uncomped_badge_count < c.MITS_BADGES_PER_TEAM
 
     @property
     def can_save(self):
@@ -151,6 +202,20 @@ class MITSPicture(MagModel):
         return os.path.join(c.MITS_PICTURE_DIR, str(self.id))
 
 
+class MITSDocument(MagModel):
+    team_id = Column(UUID, ForeignKey('mits_team.id'))
+    filename = Column(UnicodeText)
+    description  = Column(UnicodeText)
+
+    @property
+    def url(self):
+        return '../mits_applications/download_doc?id={}'.format(self.id)
+
+    @property
+    def filepath(self):
+        return os.path.join(c.MITS_PICTURE_DIR, str(self.id))
+
+
 class MITSTimes(MagModel):
     team_id = Column(ForeignKey('mits_team.id'))
     availability = Column(MultiChoice(c.MITS_SCHEDULE_OPTS))
@@ -187,5 +252,5 @@ def add_applicant_restriction():
             return instance
         setattr(Session.SessionMixin, method_name, with_applicant)
 
-    for name in ['mits_applicant', 'mits_game', 'mits_times', 'mits_picture']:
+    for name in ['mits_applicant', 'mits_game', 'mits_times', 'mits_picture', 'mits_document']:
         override_getter(name)

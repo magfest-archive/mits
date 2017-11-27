@@ -13,9 +13,8 @@ class Root:
         cherrypy.session.pop('mits_team_id', None)
         raise HTTPRedirect('team')
 
-    def continue_app(self, id):
-        cherrypy.session['mits_team_id'] = id
-        raise HTTPRedirect('index')
+    def continue_app(self, session, id):
+        session.log_in_as_mits_team(id, redirect_to='index')
 
     def login_explanation(self, message=''):
         return {'message': message}
@@ -23,6 +22,11 @@ class Root:
     def view_picture(self, session, id):
         picture = session.mits_picture(id)
         return serve_file(picture.filepath, name=picture.filename, content_type=picture.content_type)
+
+    def download_doc(self, session, id):
+        doc = session.mits_document(id)
+        cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(doc.filename)
+        return serve_file(doc.filepath, name=doc.filename)
 
     def team(self, session, message='', **params):
         params.pop('id', None)
@@ -50,7 +54,7 @@ class Root:
     def applicant(self, session, message='', **params):
         applicant = session.mits_applicant(params, applicant=True)
         if applicant.attendee_id:
-            raise HTTPRedirect('../registration/form?id={}&message={}', applicant.attendee_id)
+            raise HTTPRedirect('../preregistration/confirm?id={}&return_to={}', applicant.attendee_id, '../mits_applications/')
 
         if cherrypy.request.method == 'POST':
             message = check(applicant)
@@ -86,13 +90,13 @@ class Root:
     def picture(self, session, message='', image=None, **params):
         picture = session.mits_picture(params, applicant=True)
         if cherrypy.request.method == 'POST':
-            picture.filename = image.filename
-            picture.content_type = image.content_type.value
-            picture.extension = image.filename.split('.')[-1].lower()
             message = check(picture)
-            if not message and not image.file:
+            if not message and (not image or not image.filename):
                 message = 'You must select a picture to upload'
             if not message:
+                picture.filename = image.filename
+                picture.content_type = image.content_type.value
+                picture.extension = image.filename.split('.')[-1].lower()
                 with open(picture.filepath, 'wb') as f:
                     shutil.copyfileobj(image.file, f)
                 raise HTTPRedirect('index?message={}', 'Picture Uploaded')
@@ -105,8 +109,31 @@ class Root:
     @csrf_protected
     def delete_picture(self, session, id):
         picture = session.mits_picture(id, applicant=True)
-        session.delete_mits_picture(picture)
+        session.delete_mits_file(picture)
         raise HTTPRedirect('index?message={}', 'Picture deleted')
+
+    def document(self, session, message='', upload=None, **params):
+        doc = session.mits_document(params, applicant=True)
+        if cherrypy.request.method == 'POST':
+            message = check(doc)
+            if not message and not upload:
+                message = 'You must select a document to upload'
+            if not message:
+                doc.filename = upload.filename
+                with open(doc.filepath, 'wb') as f:
+                    shutil.copyfileobj(upload.file, f)
+                raise HTTPRedirect('index?message={}', 'Document Uploaded')
+
+        return {
+            'doc': doc,
+            'message': message
+        }
+
+    @csrf_protected
+    def delete_document(self, session, id):
+        doc = session.mits_document(id, applicant=True)
+        session.delete_mits_file(doc)
+        raise HTTPRedirect('index?message={}', 'Document deleted')
 
     def game(self, session, message='', **params):
         game = session.mits_game(params, applicant=True)
