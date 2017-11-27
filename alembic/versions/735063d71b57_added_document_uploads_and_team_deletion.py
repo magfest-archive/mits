@@ -46,8 +46,14 @@ def upgrade():
     sa.ForeignKeyConstraint(['team_id'], ['mits_team.id'], name=op.f('fk_mits_document_team_id_mits_team')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_mits_document'))
     )
-    op.add_column('mits_team', sa.Column('deleted', sa.Boolean(), server_default='False', nullable=False))
-    op.add_column('mits_team', sa.Column('duplicate_of', sideboard.lib.sa.UUID(), nullable=True))
+
+    if is_sqlite:
+        with op.batch_alter_table('mits_team', reflect_kwargs=sqlite_reflect_kwargs) as batch_op:
+            batch_op.add_column(sa.Column('deleted', sa.Boolean(), server_default='False', nullable=False))
+            batch_op.add_column(sa.Column('duplicate_of', sideboard.lib.sa.UUID(), nullable=True))
+    else:
+        op.add_column('mits_team', sa.Column('deleted', sa.Boolean(), server_default='False', nullable=False))
+        op.add_column('mits_team', sa.Column('duplicate_of', sideboard.lib.sa.UUID(), nullable=True))
 
 
 def downgrade():
