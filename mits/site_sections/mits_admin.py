@@ -102,3 +102,30 @@ class Root:
             return {'error': 'Unexpected error: unable to add attendee'}
         else:
             return {'comp_count': applicant.team.comped_badge_count}
+
+    @csv_file
+    def hotel_requests(self, out, session):
+        for team in session.mits_teams().filter_by(status=c.ACCEPTED):
+            for applicant in team.applicants:
+                if applicant.requested_room_nights:
+                    out.writerow([
+                        team.name,
+                        applicant.full_name,
+                        applicant.email,
+                        applicant.cellphone
+                    ] + [
+                        desc if val in applicant.requested_room_nights_ints else ''
+                        for val, desc in c.MITS_ROOM_NIGHT_OPTS
+                    ])
+
+    @csv_file
+    def schedule_requests(self, out, session):
+        out.writerow([''] + [desc for val, desc in c.MITS_SCHEDULE_OPTS])
+        for team in session.mits_teams().filter_by(status=c.ACCEPTED):
+            available = getattr(team.schedule, 'availability_ints', [])
+            multiple = getattr(team.schedule, 'multiple_tables_ints', [])
+            out.writerow([team.name] + [
+                'multiple' if val in multiple else
+                '1 table' if val in available else ''
+                for val, desc in c.MITS_SCHEDULE_OPTS
+            ])
