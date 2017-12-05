@@ -129,3 +129,19 @@ class Root:
                 '1 table' if val in available else ''
                 for val, desc in c.MITS_SCHEDULE_OPTS
             ])
+
+    @csv_file
+    def panel_requests(self, out, session):
+        out.writerow(['URL', 'Team', 'Primary Contact Names', 'Primary Contact Emails']
+                   + [desc for val, desc in c.MITS_SCHEDULE_OPTS])
+        for team in session.mits_teams().filter_by(status=c.ACCEPTED, panel_interest=True):
+            available = getattr(team.schedule, 'availability_ints', [])
+            out.writerow([
+                c.URL_BASE + '/mits_admin/team?id=' + team.id,
+                team.name,
+                '\n'.join(a.full_name for a in team.primary_contacts),
+                '\n'.join(a.email for a in team.primary_contacts)
+            ] + [
+                'available' if val in available else ''
+                for val, desc in c.MITS_SCHEDULE_OPTS
+            ])

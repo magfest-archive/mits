@@ -31,6 +31,14 @@ MITSEmail('Thanks for submitting your MITS application!', 'mits_submitted.txt',
           lambda team: team.submitted,
           ident='mits_application_submitted')
 
+MITSEmail('Please fill out the remainder of your MITS application', 'mits_preaccepted.txt',
+          lambda team: team.accepted and team.completion_percentage < 100,
+          ident='mits_preaccepted_incomplete')
+
+MITSEmail('MITS initial panel information', 'mits_initial_panel_info.txt',
+          lambda team: team.accepted and team.panel_interest,
+          ident='mits_initial_panel_info')
+
 # TODO: emails we still need to configure include but are not limited to:
 # -> when teams have been accepted
 # -> when teams have been declined
