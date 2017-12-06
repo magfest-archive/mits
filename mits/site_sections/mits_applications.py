@@ -193,10 +193,18 @@ class Root:
         }
 
     def submit_for_judging(self, session):
+        """
+        Sometimes we mark partially completed applications as accepted, either
+        because there's enough information to complete judging OR because an
+        admin created the application manually after the deadline for a team
+        they wanted to make an exception for.  Applicants are therefore allowed
+        to submit their applications either before the deadline or at any time
+        if they've been pre-accepted.
+        """
         team = session.logged_in_mits_team()
         if team.steps_completed < c.MITS_APPLICATION_STEPS - 1:
             raise HTTPRedirect('index?message={}', 'You have not completed all of the required steps')
-        elif c.AFTER_MITS_SUBMISSION_DEADLINE:
+        elif c.AFTER_MITS_SUBMISSION_DEADLINE and not team.accepted:
             raise HTTPRedirect('index?message={}', 'You cannot submit an application past the deadline')
         else:
             team.submitted = datetime.now(UTC)
